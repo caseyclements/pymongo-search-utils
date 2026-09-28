@@ -201,6 +201,7 @@ def create_vector_search_index(
             predicate=lambda: is_index_ready(collection, index_name),
             err=f"{index_name=} did not complete in {wait_until_complete}!",
             timeout=wait_until_complete,
+            retry_on=(OperationFailure,),
         )
     logger.info(result)
 
@@ -260,6 +261,7 @@ def update_vector_search_index(
             predicate=lambda: is_index_ready(collection, index_name),
             err=f"Index {index_name} update did not complete in {wait_until_complete}!",
             timeout=wait_until_complete,
+            retry_on=(OperationFailure,),
         )
     logger.info("Update succeeded")
 
