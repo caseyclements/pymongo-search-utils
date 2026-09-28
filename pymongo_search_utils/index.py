@@ -440,7 +440,7 @@ def wait_for_docs_in_index(
     num_dimensions = vector_fields[0]["numDimensions"]
 
     query_vector = [0.001] * num_dimensions  # Dummy vector
-    query = [
+    pipeline = [
         {
             "$vectorSearch": {
                 "index": index_name,
@@ -451,11 +451,15 @@ def wait_for_docs_in_index(
             }
         },
     ]
+
+    def indexed_enough() -> bool:
+        return len(collection.aggregate(pipeline).to_list()) == n_docs
+
     # READY and queryable are not quite the same instant, so a failure here means
     # "not caught up yet". The remaining budget is what is left of the one deadline
     # shared with the readiness wait above.
     wait_for_predicate(
-        predicate=lambda: len(collection.aggregate(query).to_list()) == n_docs,
+        predicate=indexed_enough,
         err=f"Index {index_name} did not index {n_docs} documents in {timeout}s.",
         timeout=timeout - (monotonic() - start),
         retry_on=(OperationFailure,),
