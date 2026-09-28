@@ -479,7 +479,7 @@ def wait_for_fulltext_docs_in_index(
 
     n_docs = collection.count_documents({path: {"$exists": True}}) if n_docs is None else n_docs
     if n_docs < 0:
-        raise ValueError(f"{n_docs=} must be a positive integer")
+        raise ValueError(f"{n_docs=} must be a nonnegative integer")
     if n_docs == 0:
         return True
 
