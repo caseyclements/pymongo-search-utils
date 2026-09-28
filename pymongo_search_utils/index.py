@@ -1,6 +1,6 @@
 import logging
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from time import monotonic, sleep
 from typing import Any, Literal
 
@@ -140,6 +140,36 @@ def wait_for_predicate(
         if monotonic() - start > timeout:
             raise TimeoutError(err) from last_error
         sleep(interval)
+
+
+def wait_for_index(
+    collection: Collection[Any],
+    index_name: str,
+    timeout: float = TIMEOUT,
+) -> Mapping[str, Any]:
+    """Block until the index is present and ready to be indexed.
+    Args:
+        collection: Collection containing the index.
+        index_name: Name of the index.
+        timeout: Time to wait for the index to be ready.
+
+    A freshly created index is neither immediately visible nor immediately queryable.
+
+    Returns: None
+
+    Raises:
+        TimeoutError: If the index is not ready and seen in Collection's list.
+    """
+    wait_for_predicate(
+        predicate=lambda: is_index_ready(collection, index_name),
+        err=f"Index {index_name} was not ready in {timeout}s.",
+        timeout=timeout,
+    )
+    index = collection.list_search_indexes(index_name).try_next()
+    if index is None:  # dropped between becoming ready and being read back
+        raise TimeoutError(f"Index {index_name} was not ready in {timeout}s.")
+
+    return index
 
 
 def create_vector_search_index(
@@ -395,18 +425,10 @@ def wait_for_docs_in_index(
         raise ValueError(f"{n_docs=} exceeds the $vectorSearch numCandidates ceiling of 10000.")
 
     start = monotonic()
-    wait_for_predicate(
-        predicate=lambda: is_index_ready(collection, index_name),
-        err=f"Index {index_name} was not ready in {timeout}s.",
-        timeout=timeout,
-    )
-    index = collection.list_search_indexes(index_name).try_next()
-    if index is None:  # dropped between becoming ready and being read back
-        raise TimeoutError(f"Index {index_name} was not ready in {timeout}s.")
+    index = wait_for_index(collection, index_name, timeout)
 
-    # A vector search index defines an array of fields, only one of which is the
-    # vector. Filter fields may be declared before it, so select by type rather
-    # than taking fields[0]. A fulltext index has "mappings" and no "fields".
+    # Confirm index type. Vector search indexes define an array of fields,
+    # only one of which is the vector. A fulltext index has "mappings" and no "fields".
     fields = index["latestDefinition"].get("fields", [])
     vector_fields = [f for f in fields if f.get("type") == "vector"]
     if not vector_fields:
@@ -485,15 +507,8 @@ def wait_for_fulltext_docs_in_index(
     if n_docs == 0:
         return True
 
-    # A freshly created index is neither immediately visible nor immediately queryable
-    wait_for_predicate(
-        predicate=lambda: is_index_ready(collection, index_name),
-        err=f"Index {index_name} was not ready in {timeout}s.",
-        timeout=timeout,
-    )
-    index = collection.list_search_indexes(index_name).try_next()
-    if index is None:  # dropped between becoming ready and being read back
-        raise TimeoutError(f"Index {index_name} was not ready in {timeout}s.")
+    index = wait_for_index(collection, index_name, timeout)
+
     # Confirm index type.
     # fulltext index always defines "mappings", a vector one never does.
     if "mappings" not in index["latestDefinition"]:
