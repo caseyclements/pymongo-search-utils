@@ -388,7 +388,7 @@ def wait_for_docs_in_index(
             n_docs, within the timeout.
     """
     if n_docs < 0:
-        raise ValueError(f"{n_docs=} must be a positive integer")
+        raise ValueError(f"{n_docs=} must be a nonnegative integer")
     if n_docs == 0:
         return True
     if n_docs > 10000:
