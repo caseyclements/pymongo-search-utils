@@ -173,11 +173,11 @@ def wait_for_index(
 
 
 def wait_to_be_indexed(
-    collection: Collection,
+    collection: Collection[Any],
     index_name: str,
     search_pipeline: list[dict[str, Any]],
     n_docs: int,
-    start: float = None,
+    start: float | None = None,
     timeout: float = TIMEOUT,
 ) -> Literal[True]:
     """Wait for at least n_docs to be indexed.
@@ -190,8 +190,8 @@ def wait_to_be_indexed(
     if n_docs == 0:
         return True
 
-    def _indexed_enough():
-        # bool guard as count emits no document when no matches."""
+    def _indexed_enough() -> bool:
+        # bool guard as count emits no document when no matches.
         result = collection.aggregate(search_pipeline + [{"$count": "count"}]).to_list()
         return bool(result) and result[0]["count"] >= n_docs
 
