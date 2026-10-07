@@ -147,7 +147,7 @@ def wait_for_index(
     index_name: str,
     timeout: float = TIMEOUT,
 ) -> Mapping[str, Any]:
-    """Block until the index is present and ready to be indexed.
+    """Block until the index is present and ready to be indexed. A freshly created index is neither immediately visible nor immediately queryable.
     Args:
         collection: Collection containing the index.
         index_name: Name of the index.
