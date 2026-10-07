@@ -147,7 +147,7 @@ def wait_for_index(
     index_name: str,
     timeout: float = TIMEOUT,
 ) -> Mapping[str, Any]:
-    """Block until the index is present and ready to be indexed. A freshly created index is neither immediately visible nor immediately queryable.
+    """Block until the index is present and ready to be indexed.
     Args:
         collection: Collection containing the index.
         index_name: Name of the index.
@@ -166,7 +166,7 @@ def wait_for_index(
         timeout=timeout,
     )
     index = collection.list_search_indexes(index_name).try_next()
-    if index is None:  # dropped between becoming ready and being read back
+    if index is None:  # Corner case: Index was dropped right after becoming ready.
         raise TimeoutError(f"Index {index_name} was not ready in {timeout}s.")
 
     return index
