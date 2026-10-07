@@ -172,6 +172,41 @@ def wait_for_index(
     return index
 
 
+def wait_to_be_indexed(
+    collection: Collection,
+    index_name: str,
+    search_pipeline: list[dict[str, Any]],
+    n_docs: int,
+    start: float = None,
+    timeout: float = TIMEOUT,
+) -> Literal[True]:
+    """Wait for at least n_docs to be indexed.
+
+    `pipeline` is the search performed. This is different for fulltext and vector
+    indexes, and may change again.
+
+    The predicate used counts the number of documents found.
+    """
+    if n_docs == 0:
+        return True
+
+    def _indexed_enough():
+        # bool guard as count emits no document when no matches."""
+        result = collection.aggregate(search_pipeline + [{"$count": "count"}]).to_list()
+        return bool(result) and result[0]["count"] >= n_docs
+
+    if start is None:
+        start = monotonic()
+
+    wait_for_predicate(
+        predicate=_indexed_enough,
+        err=f"Index {index_name} did not index {n_docs} documents in {timeout}s.",
+        timeout=timeout - (monotonic() - start),
+        retry_on=(OperationFailure,),
+    )
+    return True
+
+
 def create_vector_search_index(
     collection: Collection[Any],
     index_name: str,
@@ -450,24 +485,9 @@ def wait_for_docs_in_index(
                 "limit": n_docs,
             }
         },
-        {"$count": "count"},
     ]
 
-    def indexed_enough() -> bool:
-        """Predicate used. bool guard as count emits no document when no matches."""
-        result = collection.aggregate(pipeline).to_list()
-        return bool(result) and result[0]["count"] == n_docs
-
-    # READY and queryable are not quite the same instant, so a failure here means
-    # "not caught up yet". The remaining budget is what is left of the one deadline
-    # shared with the readiness wait above.
-    wait_for_predicate(
-        predicate=indexed_enough,
-        err=f"Index {index_name} did not index {n_docs} documents in {timeout}s.",
-        timeout=timeout - (monotonic() - start),
-        retry_on=(OperationFailure,),
-    )
-    return True
+    return wait_to_be_indexed(collection, index_name, pipeline, n_docs, start, timeout)
 
 
 def wait_for_fulltext_docs_in_index(
@@ -526,18 +546,6 @@ def wait_for_fulltext_docs_in_index(
 
     pipeline: list[dict[str, Any]] = [
         {"$search": {"index": index_name, "exists": {"path": path}}},
-        {"$count": "count"},
     ]
 
-    def indexed_enough() -> bool:
-        """Predicate used. bool guard as count emits no document when no matches."""
-        result = collection.aggregate(pipeline).to_list()
-        return bool(result) and result[0]["count"] >= n_docs
-
-    wait_for_predicate(
-        predicate=indexed_enough,
-        err=f"Index {index_name} did not index {n_docs} documents in {timeout}s.",
-        timeout=timeout - (monotonic() - start),
-        retry_on=(OperationFailure,),
-    )
-    return True
+    return wait_to_be_indexed(collection, index_name, pipeline, n_docs, start, timeout)
