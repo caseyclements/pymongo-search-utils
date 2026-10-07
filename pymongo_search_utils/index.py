@@ -450,10 +450,13 @@ def wait_for_docs_in_index(
                 "limit": n_docs,
             }
         },
+        {"$count": "count"},
     ]
 
     def indexed_enough() -> bool:
-        return len(collection.aggregate(pipeline).to_list()) == n_docs
+        """Predicate used. bool guard as count emits no document when no matches."""
+        result = collection.aggregate(pipeline).to_list()
+        return bool(result) and result[0]["count"] == n_docs
 
     # READY and queryable are not quite the same instant, so a failure here means
     # "not caught up yet". The remaining budget is what is left of the one deadline
