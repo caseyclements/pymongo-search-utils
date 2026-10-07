@@ -329,7 +329,7 @@ def drop_vector_search_index(
 ) -> None:
     """Drop an existing vector or fulltext search index.
 
-    .. deprecated::
+    .. deprecated:: 0.4.0
         Use :func:`drop_search_index` instead. This function never did anything
         vector-specific: it drops any search index by name.
     """
