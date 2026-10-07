@@ -241,8 +241,8 @@ def test_indexes(collection: Collection, requires_search) -> None:
             collection, FULLTEXT_INDEX_NAME, "foo", n_docs=99, timeout=3
         )
 
-    # "page_content", an indexed path (produces a count that never reaches n_docs, which
-    # exercises the comparison itself rather than the empty-result guard.
+    # "page_content" is an indexed path with LESS THAN 99 documents.
+    # It will never meet the comparison that it waits for, resulting in a TimeoutError.
     with pytest.raises(TimeoutError, match="did not index 99 documents"):
         wait_for_fulltext_docs_in_index(
             collection, FULLTEXT_INDEX_NAME, "page_content", n_docs=99, timeout=3
