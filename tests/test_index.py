@@ -176,7 +176,11 @@ def test_wait_for_fulltext_docs_in_index_on_empty_collection(empty_clxn, require
 
 
 def test_indexes(collection: Collection, requires_search) -> None:
-    """Tests, create, wait, and drop index functions together."""
+    """Tests, create, wait, and drop index functions together.
+
+    Testing together avoids the cost of creating and dropping search indexes and syncing
+    for individual aspect being tested.
+    """
 
     # Clean up collection
     collection.delete_many({})
