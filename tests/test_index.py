@@ -175,10 +175,11 @@ def test_cornercases_wait_for_doc_in_index_nonexistent(
     with pytest.raises(ValueError, match="must be a nonnegative integer"):
         wait_for_docs_in_index(collection, "nonexistent_index", n_docs=-1, timeout=3)
 
-    assert wait_for_docs_in_index(collection, "nonexistent_index", n_docs=0, timeout=3)
-
     with pytest.raises(ValueError, match="exceeds the \$vectorSearch numCandidates"):
         wait_for_docs_in_index(collection, "nonexistent_index", n_docs=99000, timeout=3)
+
+    # n_docs == 0 is listed in docstring as immediately returning true immediately index or not
+    assert wait_for_docs_in_index(collection, "nonexistent_index", n_docs=0, timeout=3)
 
     collection.delete_many({})
 

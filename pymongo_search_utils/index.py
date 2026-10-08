@@ -455,7 +455,7 @@ def wait_for_docs_in_index(
         TimeoutError: If the index does not become ready, or does not report
             n_docs, within the timeout.
     """
-    if n_docs is None or n_docs < 0:
+    if not isinstance(n_docs, int) or n_docs < 0:  # type: ignore[redundant-expr]
         raise ValueError(f"{n_docs=} must be a nonnegative integer")
     if n_docs == 0:
         return True
