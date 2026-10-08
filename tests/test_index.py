@@ -146,19 +146,35 @@ def test_wait_for_docs_in_index_nonexistent(
     collection: Collection,
     requires_search,
 ) -> None:
-    """Confirm an index that never becomes ready raising times ou, not ValueError.
+    """Confirm an index that never becomes ready raising TimeoutError, not ValueError.
 
     A newly created index is not visible to $listSearchIndexes straight away, so
     "not there yet" cannot be distinguished from "wrong name" on a single look.
     Both now wait out the timeout.
     """
-
     collection.insert_one({"foo": "bar"})
+
     with pytest.raises(TimeoutError, match="was not ready"):
         wait_for_docs_in_index(collection, "nonexistent_index", 1, timeout=3)
 
     with pytest.raises(TimeoutError, match="Index nonexistent_index"):
-        wait_for_fulltext_docs_in_index(collection, "nonexistent_index", "foo", n_docs=1, timeout=5)
+        wait_for_fulltext_docs_in_index(collection, "nonexistent_index", "foo", n_docs=1, timeout=3)
+    collection.delete_many({})
+
+
+def test_cornercases_wait_for_doc_in_index_nonexistent(
+    collection: Collection,
+    requires_search,
+) -> None:
+    """Confirm behavior of special cases: n_docs in [-1, 0]."""
+    collection.insert_one({"foo": "bar"})
+
+    with pytest.raises(ValueError, match="must be a nonnegative integer"):
+        wait_for_docs_in_index(collection, "nonexistent_index", -1, timeout=3)
+
+    assert wait_for_fulltext_docs_in_index(
+        collection, "nonexistent_index", "foo", n_docs=0, timeout=3
+    )
     collection.delete_many({})
 
 
