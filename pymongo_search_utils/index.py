@@ -428,6 +428,7 @@ def wait_for_docs_in_index(
     n_docs: int,
     *,
     timeout: float = TIMEOUT,
+    num_candidates: int | None = None,
 ) -> Literal[True]:
     """Wait until a vector search index has indexed the expected number of documents.
 
@@ -442,6 +443,8 @@ def wait_for_docs_in_index(
         n_docs (int): The number of documents to expect in the index.
         timeout (float): Number of seconds to wait before giving up. Covers waiting
             for the index to become ready and waiting for it to catch up, together.
+        num_candidates (Optional[int]): The number of candidates used is HNSW search.
+            Defaults will work except in pathological cases.
 
     Returns:
         True, once the index reports n_docs documents.
@@ -452,7 +455,7 @@ def wait_for_docs_in_index(
         TimeoutError: If the index does not become ready, or does not report
             n_docs, within the timeout.
     """
-    if n_docs < 0:
+    if n_docs is None or n_docs < 0:
         raise ValueError(f"{n_docs=} must be a nonnegative integer")
     if n_docs == 0:
         return True

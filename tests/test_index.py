@@ -170,11 +170,16 @@ def test_cornercases_wait_for_doc_in_index_nonexistent(
     collection.insert_one({"foo": "bar"})
 
     with pytest.raises(ValueError, match="must be a nonnegative integer"):
-        wait_for_docs_in_index(collection, "nonexistent_index", -1, timeout=3)
+        wait_for_docs_in_index(collection, "nonexistent_index", n_docs=None, timeout=3)
 
-    assert wait_for_fulltext_docs_in_index(
-        collection, "nonexistent_index", "foo", n_docs=0, timeout=3
-    )
+    with pytest.raises(ValueError, match="must be a nonnegative integer"):
+        wait_for_docs_in_index(collection, "nonexistent_index", n_docs=-1, timeout=3)
+
+    assert wait_for_docs_in_index(collection, "nonexistent_index", n_docs=0, timeout=3)
+
+    with pytest.raises(ValueError, match="exceeds the \$vectorSearch numCandidates"):
+        wait_for_docs_in_index(collection, "nonexistent_index", n_docs=99000, timeout=3)
+
     collection.delete_many({})
 
 
